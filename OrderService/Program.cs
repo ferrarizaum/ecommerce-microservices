@@ -1,3 +1,4 @@
+using Microsoft.OpenApi.Models;
 using OrderService.Models;
 using RabbitMQ.Client;
 using StackExchange.Redis;
@@ -23,7 +24,27 @@ builder.Services.AddSingleton<IConnection>(sp =>
 });
 builder.Services.AddSingleton<IChannel>(sp => sp.GetService<IConnection>()!.CreateChannelAsync().GetAwaiter().GetResult());
 
+// Add Swagger services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Order Service API",
+        Version = "v1",
+        Description = "API for managing orders with Redis and RabbitMQ integration"
+    });
+});
+
 var app = builder.Build();
+
+// Configure Swagger middleware
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Order Service API V1");
+    c.RoutePrefix = string.Empty; // Serve Swagger UI at the root (e.g., /)
+});
 
 // All RabbitMQ operations are now asynchronous
 app.MapPost("/orders", async (NewOrder order, IConnectionMultiplexer redis, IChannel channel, IMeterFactory meterFactory) =>
